@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Telex Blocks</title>
+    <script src="jszip.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f0f0f1;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 30px;
+        }
+
+        .main-column {
+            min-width: 0;
+        }
+
+        .sidebar-column {
+            position: sticky;
+            top: 20px;
+            align-self: start;
+        }
+
+        @media ( max-width: 1024px ) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar-column {
+                position: static;
+            }
+        }
+
+        h1 {
+            color: #1e1e1e;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .subtitle a {
+            color: #2271b1;
+            text-decoration: none;
+        }
+
+        .subtitle a:hover {
+            text-decoration: underline;
+        }
+
+        .drop-zone {
+            border: 3px dashed #ccc;
+            border-radius: 8px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #fafafa;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .drop-zone.dragover {
+            border-color: #2271b1;
+            background: #f0f6fc;
+        }
+
+        .drop-zone-text {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .drop-zone-subtext {
+            color: #999;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        .plugin-list {
+            margin-bottom: 0;
+        }
+
+        .plugin-list h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #1e1e1e;
+        }
+
+        .plugin-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .plugin-item:hover {
+            border-color: #2271b1;
+            box-shadow: 0 2px 8px rgba(34,113,177,0.1);
+            transform: translateY(-1px);
+        }
+
+        .plugin-info {
+            flex: 1;
+        }
+
+        .plugin-name {
+            font-weight: 600;
+            color: #1e1e1e;
+            font-size: 16px;
+            margin-bottom: 6px;
+            line-height: 1.4;
+        }
+
+        .plugin-name .plugin-title {
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        .plugin-name .plugin-version {
+            font-weight: 400;
+            color: #646970;
+            margin-left: 8px;
+        }
+
+        .plugin-name .plugin-author {
+            font-weight: 400;
+            color: #646970;
+            margin-left: 8px;
+        }
+
+        .plugin-name .plugin-author::before {
+            content: "•";
+            margin-right: 8px;
+            color: #dcdcde;
+        }
+
+        .plugin-meta {
+            color: #757575;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .plugin-remove {
+            background: #dc3232;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .plugin-remove:hover {
+            background: #a02222;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #2271b1;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #135e96;
+        }
+
+        .btn-secondary {
+            background: #f0f0f1;
+            color: #2c3338;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #dcdcde;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .settings {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 15px;
+        }
+
+        .settings h3 {
+            font-size: 15px;
+            margin-bottom: 15px;
+            color: #1e1e1e;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #1e1e1e;
+            font-size: 13px;
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .description-display {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 8px 12px;
+            font-size: 14px;
+            white-space: pre-line;
+            color: #1e1e1e;
+            min-height: 60px;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .requirements-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            color: #1e1e1e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="layout">
+            <div class="main-column">
+                <h1>My Telex Blocks</h1>
+                <p class="subtitle">Combine multiple blocks from <a href="https://telex.automattic.ai/" target="_blank" rel="noopener noreferrer">telex.automattic.ai</a> into a single plugin</p>
+
+                <div id="status"></div>
+
+                <div class="drop-zone" id="dropZone">
+                    <div class="drop-zone-text">Drag & drop plugin ZIP files here</div>
+                    <div class="drop-zone-subtext">or click to select files</div>
+                    <input type="file" id="fileInput" accept=".zip" multiple style="display: none;">
+                </div>
+
+                <div id="pluginListContainer" class="hidden">
+                    <div class="plugin-list">
+                        <h2>Added Plugins (<span id="pluginCount">0</span>)</h2>
+                        <div id="pluginList"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-column">
+                <div class="settings">
+                    <h3>Download as a single plugin</h3>
+                    <div class="form-group">
+                        <label for="pluginName">Plugin Name</label>
+                        <input type="text" id="pluginName" value="My Telex Blocks" placeholder="My Combined Plugin">
+                    </div>
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                            <label style="margin-bottom: 0;">Description</label>
+                            <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer; font-size: 13px;">
+                                <input type="checkbox" id="overrideDescription" style="width: auto; margin-right: 6px;">
+                                Override
+                            </label>
+                        </div>
+                        <div id="descriptionDisplay" class="description-display">A collection of blocks generated by Telex.</div>
+                        <textarea id="pluginDescription" placeholder="A collection of WordPress blocks" class="hidden">A collection of blocks generated by Telex.</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="pluginAuthor">Author</label>
+                        <input type="text" id="pluginAuthor" placeholder="Your Name">
+                    </div>
+                    <div class="form-group">
+                        <label for="pluginVersion">Version</label>
+                        <input type="text" id="pluginVersion" value="1.0.0" placeholder="1.0.0" readonly>
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button class="btn btn-primary" id="downloadBtn">Download Combined Plugin</button>
+                    <button class="btn btn-secondary" id="clearBtn">Clear All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const plugins = [];
+        const dropZone = document.getElementById( 'dropZone' );
+        const fileInput = document.getElementById( 'fileInput' );
+        const pluginList = document.getElementById( 'pluginList' );
+        const pluginListContainer = document.getElementById( 'pluginListContainer' );
+        const pluginCount = document.getElementById( 'pluginCount' );
+        const downloadBtn = document.getElementById( 'downloadBtn' );
+        const clearBtn = document.getElementById( 'clearBtn' );
+        const statusDiv = document.getElementById( 'status' );
+        const requirementsInfo = document.getElementById( 'requirementsInfo' );
+
+        const DB_NAME = 'MyTelexBlocksDB';
+        const DB_VERSION = 1;
+        let db = null;
+
+        async function initDB() {
+            return new Promise( ( resolve, reject ) => {
+                const request = indexedDB.open( DB_NAME, DB_VERSION );
+
+                request.onerror = () => reject( request.error );
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve( db );
+                };
+
+                request.onupgradeneeded = ( event ) => {
+                    const db = event.target.result;
+                    if ( !db.objectStoreNames.contains( 'plugins' ) ) {
+                        db.createObjectStore( 'plugins', { keyPath: 'id', autoIncrement: true } );
+                    }
+                    if ( !db.objectStoreNames.contains( 'files' ) ) {
+                        db.createObjectStore( 'files', { keyPath: 'id', autoIncrement: true } );
+                    }
+                    if ( !db.objectStoreNames.contains( 'settings' ) ) {
+                        db.createObjectStore( 'settings', { keyPath: 'key' } );
+                    }
+                };
+            } );
+        }
+
+        dropZone.addEventListener( 'click', () => {
+            fileInput.click();
+        } );
+
+        dropZone.addEventListener( 'dragover', ( e ) => {
+            e.preventDefault();
+            dropZone.classList.add( 'dragover' );
+        } );
+
+        dropZone.addEventListener( 'dragleave', () => {
+            dropZone.classList.remove( 'dragover' );
+        } );
+
+        dropZone.addEventListener( 'drop', async ( e ) => {
+            e.preventDefault();
+            dropZone.classList.remove( 'dragover' );
+            const files = Array.from( e.dataTransfer.files ).filter( f => f.name.endsWith( '.zip' ) );
+            await processFiles( files );
+        } );
+
+        fileInput.addEventListener( 'change', async ( e ) => {
+            const files = Array.from( e.target.files );
+            await processFiles( files );
+            fileInput.value = '';
+        } );
+
+        downloadBtn.addEventListener( 'click', generateCombinedPlugin );
+        clearBtn.addEventListener( 'click', clearAll );
+
+        document.getElementById( 'pluginName' ).addEventListener( 'input', saveFormData );
+        document.getElementById( 'pluginDescription' ).addEventListener( 'input', saveFormData );
+        document.getElementById( 'pluginAuthor' ).addEventListener( 'input', saveFormData );
+        document.getElementById( 'pluginVersion' ).addEventListener( 'input', saveFormData );
+
+        document.getElementById( 'overrideDescription' ).addEventListener( 'change', function() {
+            toggleDescriptionMode();
+            saveFormData();
+        } );
+
+        function toggleDescriptionMode() {
+            const overrideCheckbox = document.getElementById( 'overrideDescription' );
+            const descDisplay = document.getElementById( 'descriptionDisplay' );
+            const descTextarea = document.getElementById( 'pluginDescription' );
+
+            if ( overrideCheckbox.checked ) {
+                descDisplay.classList.add( 'hidden' );
+                descTextarea.classList.remove( 'hidden' );
+            } else {
+                descDisplay.classList.remove( 'hidden' );
+                descTextarea.classList.add( 'hidden' );
+                updateSuggestedDescription();
+            }
+        }
+
+        loadFromStorage();
+
+        async function processFiles( files ) {
+            for ( const file of files ) {
+                try {
+                    const zip = await JSZip.loadAsync( file );
+                    const pluginData = await parsePlugin( zip, file.name );
+
+                    if ( pluginData ) {
+                        pluginData.zip = zip;
+                        pluginData.fileName = file.name;
+
+                        const existingIndex = plugins.findIndex( p => p.name === pluginData.name );
+                        if ( existingIndex !== -1 ) {
+                            plugins[existingIndex] = pluginData;
+                        } else {
+                            plugins.push( pluginData );
+                        }
+
+                        const authorField = document.getElementById( 'pluginAuthor' );
+                        if ( pluginData.author && !authorField.value ) {
+                            authorField.value = pluginData.author;
+                            saveFormData();
+                        }
+                    }
+                } catch ( error ) {
+                    showStatus( `Error processing ${file.name}: ${error.message}`, 'error' );
+                }
+            }
+            updatePluginList();
+            updateRequirements();
+            await saveToStorage();
+        }
+
+        async function parsePlugin( zip, fileName ) {
+            const phpFiles = Object.keys( zip.files ).filter( name =>
+                name.endsWith( '.php' ) && !name.includes( '/' ) ||
+                ( name.split( '/' ).length === 2 && name.endsWith( '.php' ) )
+            );
+
+            for ( const phpFile of phpFiles ) {
+                const content = await zip.files[phpFile].async( 'string' );
+                const header = parsePluginHeader( content );
+
+                if ( header.name ) {
+                    return {
+                        name: header.name,
+                        description: header.description || '',
+                        version: header.version || '1.0.0',
+                        author: header.author || '',
+                        mainFile: phpFile,
+                        requiresWP: header.requiresWP || null,
+                        requiresPHP: header.requiresPHP || null,
+                        header: header
+                    };
+                }
+            }
+
+            return {
+                name: fileName.replace( '.zip', '' ),
+                description: 'No plugin header found',
+                version: '1.0.0',
+                author: '',
+                mainFile: phpFiles[0] || '',
+                requiresWP: null,
+                requiresPHP: null,
+                header: {}
+            };
+        }
+
+        function parsePluginHeader( content ) {
+            const header = {};
+            const headerRegex = /Plugin Name:\s*(.+)/i;
+            const descRegex = /Description:\s*(.+)/i;
+            const versionRegex = /Version:\s*(.+)/i;
+            const authorRegex = /Author:\s*(.+)/i;
+            const authorURIRegex = /Author URI:\s*(.+)/i;
+            const pluginURIRegex = /Plugin URI:\s*(.+)/i;
+            const requiresWPRegex = /Requires at least:\s*(.+)/i;
+            const requiresPHPRegex = /Requires PHP:\s*(.+)/i;
+
+            const nameMatch = content.match( headerRegex );
+            if ( nameMatch ) header.name = nameMatch[1].trim();
+
+            const descMatch = content.match( descRegex );
+            if ( descMatch ) header.description = descMatch[1].trim();
+
+            const versionMatch = content.match( versionRegex );
+            if ( versionMatch ) header.version = versionMatch[1].trim();
+
+            const authorMatch = content.match( authorRegex );
+            if ( authorMatch ) header.author = authorMatch[1].trim();
+
+            const authorURIMatch = content.match( authorURIRegex );
+            if ( authorURIMatch ) header.authorURI = authorURIMatch[1].trim();
+
+            const pluginURIMatch = content.match( pluginURIRegex );
+            if ( pluginURIMatch ) header.pluginURI = pluginURIMatch[1].trim();
+
+            const requiresWPMatch = content.match( requiresWPRegex );
+            if ( requiresWPMatch ) header.requiresWP = requiresWPMatch[1].trim();
+
+            const requiresPHPMatch = content.match( requiresPHPRegex );
+            if ( requiresPHPMatch ) header.requiresPHP = requiresPHPMatch[1].trim();
+
+            return header;
+        }
+
+        function updatePluginList() {
+            if ( plugins.length === 0 ) {
+                pluginListContainer.classList.add( 'hidden' );
+                return;
+            }
+
+            pluginListContainer.classList.remove( 'hidden' );
+            pluginCount.textContent = plugins.length;
+
+            pluginList.textContent = '';
+
+            plugins.forEach( ( plugin, index ) => {
+                const item = document.createElement( 'div' );
+                item.className = 'plugin-item';
+
+                const info = document.createElement( 'div' );
+                info.className = 'plugin-info';
+
+                const name = document.createElement( 'div' );
+                name.className = 'plugin-name';
+
+                const title = document.createElement( 'span' );
+                title.className = 'plugin-title';
+                title.textContent = plugin.name;
+                name.appendChild( title );
+
+                if ( plugin.version ) {
+                    const version = document.createElement( 'span' );
+                    version.className = 'plugin-version';
+                    version.textContent = 'v' + plugin.version;
+                    name.appendChild( version );
+                }
+
+                if ( plugin.author ) {
+                    const author = document.createElement( 'span' );
+                    author.className = 'plugin-author';
+                    author.textContent = 'by ' + plugin.author;
+                    name.appendChild( author );
+                }
+
+                info.appendChild( name );
+
+                const meta = document.createElement( 'div' );
+                meta.className = 'plugin-meta';
+                meta.textContent = plugin.description ? plugin.description : 'No description';
+                info.appendChild( meta );
+
+                const removeBtn = document.createElement( 'button' );
+                removeBtn.className = 'plugin-remove';
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener( 'click', () => removePlugin( index ) );
+
+                item.appendChild( info );
+                item.appendChild( removeBtn );
+                pluginList.appendChild( item );
+            } );
+
+            updateSuggestedDescription();
+        }
+
+        function updateSuggestedDescription() {
+            if ( plugins.length === 0 ) {
+                return;
+            }
+
+            const descDisplay = document.getElementById( 'descriptionDisplay' );
+            const descField = document.getElementById( 'pluginDescription' );
+            const overrideCheckbox = document.getElementById( 'overrideDescription' );
+
+            if ( overrideCheckbox.checked ) {
+                return;
+            }
+
+            const blockList = plugins.map( p => {
+                const name = p.name;
+                const desc = p.description && p.description !== 'No description' && p.description !== 'No plugin header found' ? p.description : '';
+                return desc ? `- ${name}: ${desc}` : `- ${name}`;
+            } );
+
+            let descText;
+            if ( blockList.length > 0 ) {
+                descText = 'Includes:\n' + blockList.join( '\n' );
+            } else {
+                descText = 'A collection of ' + plugins.length + ' block' + ( plugins.length > 1 ? 's' : '' ) + ' generated by Telex.';
+            }
+
+            descDisplay.textContent = descText;
+            descField.value = descText;
+            saveFormData();
+        }
+
+        function updateRequirements() {
+            // Requirements are tracked but not displayed to the user
+        }
+
+        function getMinimumRequirements() {
+            let maxWP = null;
+            let maxPHP = null;
+
+            for ( const plugin of plugins ) {
+                if ( plugin.requiresWP ) {
+                    if ( !maxWP || compareVersions( plugin.requiresWP, maxWP ) > 0 ) {
+                        maxWP = plugin.requiresWP;
+                    }
+                }
+                if ( plugin.requiresPHP ) {
+                    if ( !maxPHP || compareVersions( plugin.requiresPHP, maxPHP ) > 0 ) {
+                        maxPHP = plugin.requiresPHP;
+                    }
+                }
+            }
+
+            return { wp: maxWP, php: maxPHP };
+        }
+
+        function compareVersions( v1, v2 ) {
+            const parts1 = v1.split( '.' ).map( Number );
+            const parts2 = v2.split( '.' ).map( Number );
+            const maxLength = Math.max( parts1.length, parts2.length );
+
+            for ( let i = 0; i < maxLength; i++ ) {
+                const part1 = parts1[i] || 0;
+                const part2 = parts2[i] || 0;
+                if ( part1 > part2 ) return 1;
+                if ( part1 < part2 ) return -1;
+            }
+            return 0;
+        }
+
+        async function removePlugin( index ) {
+            plugins.splice( index, 1 );
+            updatePluginList();
+            updateRequirements();
+            await saveToStorage();
+        }
+
+        function clearAll() {
+            if ( !confirm( 'Are you sure you want to clear all plugins and reset all settings? This cannot be undone.' ) ) {
+                return;
+            }
+
+            plugins.length = 0;
+            updatePluginList();
+            updateRequirements();
+            clearStatus();
+
+            document.getElementById( 'pluginName' ).value = 'My Telex Blocks';
+            document.getElementById( 'pluginDescription' ).value = 'A collection of blocks generated by Telex.';
+            document.getElementById( 'descriptionDisplay' ).textContent = 'A collection of blocks generated by Telex.';
+            document.getElementById( 'pluginAuthor' ).value = '';
+            document.getElementById( 'pluginVersion' ).value = '1.0.0';
+            document.getElementById( 'overrideDescription' ).checked = false;
+            toggleDescriptionMode();
+
+            clearStorage();
+        }
+
+        async function generateCombinedPlugin() {
+            if ( plugins.length === 0 ) {
+                showStatus( 'Please add at least one plugin', 'error' );
+                return;
+            }
+
+            try {
+                downloadBtn.disabled = true;
+                showStatus( 'Generating combined plugin...', 'success' );
+
+                const combinedZip = new JSZip();
+                const pluginName = document.getElementById( 'pluginName' ).value || 'My Telex Blocks';
+                const pluginSlug = slugify( pluginName );
+                const version = document.getElementById( 'pluginVersion' ).value || '1.0.0';
+
+                for ( let i = 0; i < plugins.length; i++ ) {
+                    const plugin = plugins[i];
+                    const subPluginSlug = slugify( plugin.name );
+                    const folderName = `${pluginSlug}/${subPluginSlug}`;
+
+                    for ( const [path, file] of Object.entries( plugin.zip.files ) ) {
+                        if ( !file.dir ) {
+                            let content = await file.async( 'uint8array' );
+
+                            if ( path === plugin.mainFile && path.endsWith( '.php' ) ) {
+                                const textContent = await plugin.zip.files[path].async( 'string' );
+                                const transformedContent = transformPluginHeader( textContent, plugin );
+                                content = new TextEncoder().encode( transformedContent );
+                            }
+
+                            combinedZip.file( `${folderName}/${path}`, content );
+                        }
+                    }
+                }
+
+                const mainPluginContent = generateMainPluginFile();
+                combinedZip.file( `${pluginSlug}/${pluginSlug}.php`, mainPluginContent );
+
+                const blob = await combinedZip.generateAsync( { type: 'blob' } );
+                const url = URL.createObjectURL( blob );
+                const a = document.createElement( 'a' );
+                a.href = url;
+                a.download = `${pluginSlug}-${version}.zip`;
+                document.body.appendChild( a );
+                a.click();
+                document.body.removeChild( a );
+                URL.revokeObjectURL( url );
+
+                incrementVersion();
+
+                showStatus( 'Combined plugin downloaded successfully!', 'success' );
+                downloadBtn.disabled = false;
+            } catch ( error ) {
+                showStatus( `Error generating plugin: ${error.message}`, 'error' );
+                downloadBtn.disabled = false;
+            }
+        }
+
+        function incrementVersion() {
+            const versionField = document.getElementById( 'pluginVersion' );
+            const currentVersion = versionField.value || '1.0.0';
+            const parts = currentVersion.split( '.' );
+
+            if ( parts.length >= 3 ) {
+                parts[2] = String( parseInt( parts[2] ) + 1 );
+            } else if ( parts.length === 2 ) {
+                parts.push( '1' );
+            } else {
+                parts[0] = String( parseInt( parts[0] || 1 ) + 1 );
+            }
+
+            versionField.value = parts.join( '.' );
+            saveFormData();
+        }
+
+        function generateMainPluginFile() {
+            const pluginName = document.getElementById( 'pluginName' ).value || 'My Telex Blocks';
+            let description = document.getElementById( 'pluginDescription' ).value || 'A combined plugin containing multiple block plugins.';
+            description = description.replace( /\n/g, ' ' ).replace( /\s+/g, ' ' ).trim();
+            const author = document.getElementById( 'pluginAuthor' ).value || '';
+            const version = document.getElementById( 'pluginVersion' ).value || '1.0.0';
+            const minRequirements = getMinimumRequirements();
+
+            let php = `<?php
+/**
+ * Plugin Name: ${pluginName}
+ * Description: ${description}
+ * Version: ${version}`;
+
+            if ( author ) {
+                php += `\n * Author: ${author}`;
+            }
+
+            if ( minRequirements.wp ) {
+                php += `\n * Requires at least: ${minRequirements.wp}`;
+            }
+
+            if ( minRequirements.php ) {
+                php += `\n * Requires PHP: ${minRequirements.php}`;
+            }
+
+            php += `
+ */
+
+if ( !defined( 'ABSPATH' ) ) {
+    exit;
+}
+
+`;
+
+            for ( const plugin of plugins ) {
+                const pluginSlug = slugify( plugin.name );
+                const mainFile = plugin.mainFile;
+                php += `require_once __DIR__ . '/${pluginSlug}/${mainFile}';\n`;
+            }
+
+            return php;
+        }
+
+        function transformPluginHeader( phpContent, pluginData ) {
+            const headerPattern = /\/\*\*[\s\S]*?\*\//;
+            const transformed = phpContent.replace( headerPattern, function( match ) {
+                if ( /Plugin Name:/i.test( match ) ) {
+                    return '';
+                }
+                return match;
+            } );
+
+            let newHeader = '<?php\n/**\n';
+            newHeader += ` * ${pluginData.name}`;
+            if ( pluginData.version ) {
+                newHeader += ` ${pluginData.version}`;
+            }
+            if ( pluginData.author ) {
+                newHeader += ` by ${pluginData.author}`;
+            }
+            newHeader += '\n';
+            if ( pluginData.description ) {
+                newHeader += ` * ${pluginData.description}\n`;
+            }
+            newHeader += ' */\n\n';
+
+            return transformed.replace( /^<\?php\s*/i, newHeader );
+        }
+
+        function slugify( text ) {
+            return text
+                .toLowerCase()
+                .replace( /[^a-z0-9]+/g, '-' )
+                .replace( /^-+|-+$/g, '' );
+        }
+
+        function showStatus( message, type ) {
+            statusDiv.textContent = '';
+            const statusMsg = document.createElement( 'div' );
+            statusMsg.className = `status-message status-${type}`;
+            statusMsg.textContent = message;
+            statusDiv.appendChild( statusMsg );
+        }
+
+        function clearStatus() {
+            statusDiv.textContent = '';
+        }
+
+        async function saveToStorage() {
+            try {
+                if ( !db ) await initDB();
+
+                const pluginRecords = [];
+                const fileRecords = [];
+
+                for ( let i = 0; i < plugins.length; i++ ) {
+                    const plugin = plugins[i];
+                    pluginRecords.push( {
+                        id: i + 1,
+                        name: plugin.name,
+                        description: plugin.description,
+                        version: plugin.version,
+                        author: plugin.author,
+                        mainFile: plugin.mainFile,
+                        requiresWP: plugin.requiresWP,
+                        requiresPHP: plugin.requiresPHP,
+                        fileName: plugin.fileName
+                    } );
+
+                    for ( const [path, file] of Object.entries( plugin.zip.files ) ) {
+                        if ( !file.dir ) {
+                            const content = await file.async( 'uint8array' );
+                            fileRecords.push( {
+                                pluginId: i + 1,
+                                path: path,
+                                content: content
+                            } );
+                        }
+                    }
+                }
+
+                const transaction = db.transaction( ['plugins', 'files'], 'readwrite' );
+                const pluginStore = transaction.objectStore( 'plugins' );
+                const fileStore = transaction.objectStore( 'files' );
+
+                pluginStore.clear();
+                fileStore.clear();
+
+                for ( const pluginRecord of pluginRecords ) {
+                    pluginStore.put( pluginRecord );
+                }
+
+                for ( const fileRecord of fileRecords ) {
+                    fileStore.put( fileRecord );
+                }
+
+                await new Promise( ( resolve, reject ) => {
+                    transaction.oncomplete = resolve;
+                    transaction.onerror = () => reject( transaction.error );
+                } );
+            } catch ( error ) {
+                console.error( 'Error saving to storage:', error );
+            }
+        }
+
+        function saveFormData() {
+            const formData = {
+                pluginName: document.getElementById( 'pluginName' ).value,
+                pluginDescription: document.getElementById( 'pluginDescription' ).value,
+                pluginAuthor: document.getElementById( 'pluginAuthor' ).value,
+                pluginVersion: document.getElementById( 'pluginVersion' ).value,
+                overrideDescription: document.getElementById( 'overrideDescription' ).checked
+            };
+            localStorage.setItem( 'myTelexBlocks_formData', JSON.stringify( formData ) );
+        }
+
+        async function loadFromStorage() {
+            try {
+                if ( !db ) await initDB();
+
+                const transaction = db.transaction( ['plugins', 'files'], 'readonly' );
+                const pluginStore = transaction.objectStore( 'plugins' );
+                const fileStore = transaction.objectStore( 'files' );
+
+                const pluginRecords = await new Promise( ( resolve, reject ) => {
+                    const request = pluginStore.getAll();
+                    request.onsuccess = () => resolve( request.result );
+                    request.onerror = () => reject( request.error );
+                } );
+
+                const savedFormData = localStorage.getItem( 'myTelexBlocks_formData' );
+                if ( savedFormData ) {
+                    const formData = JSON.parse( savedFormData );
+                    document.getElementById( 'pluginName' ).value = formData.pluginName || 'My Telex Blocks';
+                    document.getElementById( 'pluginDescription' ).value = formData.pluginDescription || 'A collection of blocks generated by Telex.';
+                    document.getElementById( 'descriptionDisplay' ).textContent = formData.pluginDescription || 'A collection of blocks generated by Telex.';
+                    document.getElementById( 'pluginAuthor' ).value = formData.pluginAuthor || '';
+                    document.getElementById( 'pluginVersion' ).value = formData.pluginVersion || '1.0.0';
+                    const overrideCheckbox = document.getElementById( 'overrideDescription' );
+                    overrideCheckbox.checked = formData.overrideDescription || false;
+                }
+
+                if ( pluginRecords.length > 0 ) {
+                    const fileRecords = await new Promise( ( resolve, reject ) => {
+                        const request = fileStore.getAll();
+                        request.onsuccess = () => resolve( request.result );
+                        request.onerror = () => reject( request.error );
+                    } );
+
+                    for ( const pluginRecord of pluginRecords ) {
+                        const zip = new JSZip();
+                        const pluginFiles = fileRecords.filter( f => f.pluginId === pluginRecord.id );
+
+                        for ( const fileRecord of pluginFiles ) {
+                            zip.file( fileRecord.path, fileRecord.content );
+                        }
+
+                        plugins.push( {
+                            name: pluginRecord.name,
+                            description: pluginRecord.description,
+                            version: pluginRecord.version,
+                            author: pluginRecord.author,
+                            mainFile: pluginRecord.mainFile,
+                            requiresWP: pluginRecord.requiresWP,
+                            requiresPHP: pluginRecord.requiresPHP,
+                            fileName: pluginRecord.fileName,
+                            zip: zip
+                        } );
+                    }
+
+                    updatePluginList();
+                    updateRequirements();
+                }
+            } catch ( error ) {
+                console.error( 'Error loading from storage:', error );
+            }
+        }
+
+        async function clearStorage() {
+            try {
+                if ( !db ) await initDB();
+                const transaction = db.transaction( ['plugins', 'files'], 'readwrite' );
+                transaction.objectStore( 'plugins' ).clear();
+                transaction.objectStore( 'files' ).clear();
+                localStorage.removeItem( 'myTelexBlocks_formData' );
+            } catch ( error ) {
+                console.error( 'Error clearing storage:', error );
+            }
+        }
+    </script>
+</body>
+</html>
