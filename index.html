@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Telex Blocks</title>
+    <script data-goatcounter="https://my-telex-blocks.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
     <script src="jszip.min.js"></script>
     <style>
         * {
@@ -493,6 +494,13 @@
                             plugins[existingIndex] = pluginData;
                         } else {
                             plugins.push( pluginData );
+                            if ( window.goatcounter ) {
+                                window.goatcounter.count( {
+                                    path: 'plugin-added',
+                                    title: 'Plugin Added',
+                                    event: true
+                                } );
+                            }
                         }
 
                         const authorField = document.getElementById( 'pluginAuthor' );
@@ -718,6 +726,13 @@
             updatePluginList();
             updateRequirements();
             await saveToStorage();
+            if ( window.goatcounter ) {
+                window.goatcounter.count( {
+                    path: 'plugin-removed',
+                    title: 'Plugin Removed',
+                    event: true
+                } );
+            }
         }
 
         function clearAll() {
@@ -739,6 +754,14 @@
             toggleDescriptionMode();
 
             clearStorage();
+
+            if ( window.goatcounter ) {
+                window.goatcounter.count( {
+                    path: 'cleared-all',
+                    title: 'Cleared All',
+                    event: true
+                } );
+            }
         }
 
         async function generateCombinedPlugin() {
@@ -793,6 +816,14 @@
 
                 showStatus( 'Combined plugin downloaded successfully!', 'success' );
                 downloadBtn.disabled = false;
+
+                if ( window.goatcounter ) {
+                    window.goatcounter.count( {
+                        path: 'plugin-downloaded',
+                        title: 'Plugin Downloaded',
+                        event: true
+                    } );
+                }
             } catch ( error ) {
                 showStatus( `Error generating plugin: ${error.message}`, 'error' );
                 downloadBtn.disabled = false;
