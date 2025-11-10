@@ -333,8 +333,8 @@
                 <div id="status"></div>
 
                 <div class="drop-zone" id="dropZone">
-                    <div class="drop-zone-text">Drag & drop plugin ZIP files here</div>
-                    <div class="drop-zone-subtext">or click to select files</div>
+                    <div class="drop-zone-text">Drag & drop block plugin ZIP files here</div>
+                    <div class="drop-zone-subtext">or click to select files (supports individual blocks and previously combined blocks)</div>
                     <input type="file" id="fileInput" accept=".zip" multiple style="display: none;">
                 </div>
 
@@ -483,6 +483,13 @@
             for ( const file of files ) {
                 try {
                     const zip = await JSZip.loadAsync( file );
+
+                    const isImport = await checkIfImport( zip );
+                    if ( isImport ) {
+                        await handleImport( zip, file.name );
+                        continue;
+                    }
+
                     const pluginData = await parsePlugin( zip, file.name );
 
                     if ( pluginData ) {
@@ -516,6 +523,177 @@
             updatePluginList();
             updateRequirements();
             await saveToStorage();
+        }
+
+        async function checkIfImport( zip ) {
+            const files = Object.keys( zip.files );
+            for ( const file of files ) {
+                if ( file.endsWith( '/my-telex-blocks.json' ) || file === 'my-telex-blocks.json' ) {
+                    try {
+                        const content = await zip.files[file].async( 'string' );
+                        const metadata = JSON.parse( content );
+                        if ( metadata.type === 'my-telex-blocks-export' ) {
+                            return metadata;
+                        }
+                    } catch ( error ) {
+                        return false;
+                    }
+                }
+            }
+            return false;
+        }
+
+        async function handleImport( zip, fileName ) {
+            const metadata = await checkIfImport( zip );
+            if ( !metadata ) {
+                return;
+            }
+
+            const hasExistingPlugins = plugins.length > 0;
+            let action = 'replace';
+
+            if ( hasExistingPlugins ) {
+                const choice = await showImportDialog( metadata );
+                if ( !choice ) {
+                    return;
+                }
+                action = choice;
+            }
+
+            if ( action === 'replace' ) {
+                plugins.length = 0;
+            }
+
+            try {
+                const rootFolder = Object.keys( zip.files )[0].split( '/' )[0];
+
+                for ( const pluginMeta of metadata.plugins ) {
+                    const subFolder = slugify( pluginMeta.name );
+                    const subZip = new JSZip();
+                    const prefix = `${rootFolder}/${subFolder}/`;
+
+                    for ( const [path, file] of Object.entries( zip.files ) ) {
+                        if ( path.startsWith( prefix ) && !file.dir ) {
+                            const relativePath = path.substring( prefix.length );
+                            const content = await file.async( 'uint8array' );
+                            subZip.file( relativePath, content );
+                        }
+                    }
+
+                    const pluginData = {
+                        name: pluginMeta.name,
+                        description: pluginMeta.description,
+                        version: pluginMeta.version,
+                        author: pluginMeta.author,
+                        mainFile: pluginMeta.mainFile,
+                        requiresWP: pluginMeta.requiresWP,
+                        requiresPHP: pluginMeta.requiresPHP,
+                        header: pluginMeta.header || {},
+                        zip: subZip,
+                        fileName: pluginMeta.fileName
+                    };
+
+                    const existingIndex = plugins.findIndex( p => p.name === pluginData.name );
+                    if ( existingIndex !== -1 ) {
+                        plugins[existingIndex] = pluginData;
+                    } else {
+                        plugins.push( pluginData );
+                    }
+                }
+
+                if ( metadata.formData ) {
+                    document.getElementById( 'pluginName' ).value = metadata.formData.pluginName || 'My Telex Blocks';
+                    document.getElementById( 'pluginDescription' ).value = metadata.formData.pluginDescription || '';
+                    document.getElementById( 'descriptionDisplay' ).textContent = metadata.formData.pluginDescription || '';
+                    document.getElementById( 'pluginAuthor' ).value = metadata.formData.pluginAuthor || '';
+                    document.getElementById( 'pluginVersion' ).value = metadata.formData.pluginVersion || '1.0.0';
+                    const overrideCheckbox = document.getElementById( 'overrideDescription' );
+                    overrideCheckbox.checked = metadata.formData.overrideDescription || false;
+                    toggleDescriptionMode();
+                    saveFormData();
+                }
+
+                updatePluginList();
+                updateRequirements();
+                await saveToStorage();
+
+                const actionText = action === 'replace' ? 'imported' : 'added';
+                const blockText = plugins.length === 1 ? 'block' : 'blocks';
+                showStatus( `Successfully ${actionText} ${plugins.length} ${blockText} from ${fileName}`, 'success' );
+
+                if ( window.goatcounter ) {
+                    window.goatcounter.count( {
+                        path: 'plugin-imported',
+                        title: 'Plugin Imported',
+                        event: true
+                    } );
+                }
+            } catch ( error ) {
+                showStatus( `Error importing: ${error.message}`, 'error' );
+            }
+        }
+
+        async function showImportDialog( metadata ) {
+            const pluginCount = metadata.plugins ? metadata.plugins.length : 0;
+            const currentCount = plugins.length;
+            const importedText = pluginCount === 1 ? 'block' : 'blocks';
+            const currentText = currentCount === 1 ? 'block' : 'blocks';
+            const message = `This appears to be a previously exported combined plugin with ${pluginCount} ${importedText}.\n\nYou currently have ${currentCount} ${currentText} loaded.\n\nHow would you like to proceed?`;
+
+            const result = await new Promise( ( resolve ) => {
+                const overlay = document.createElement( 'div' );
+                overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+
+                const dialog = document.createElement( 'div' );
+                dialog.style.cssText = 'background: var(--bg, white); padding: 30px; border-radius: 8px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);';
+
+                const title = document.createElement( 'h2' );
+                title.style.cssText = 'margin: 0 0 15px 0; font-size: 20px;';
+                title.textContent = 'Import Combined Plugin';
+
+                const text = document.createElement( 'p' );
+                text.style.cssText = 'margin: 0 0 25px 0; white-space: pre-line; line-height: 1.6;';
+                text.textContent = message;
+
+                const buttonContainer = document.createElement( 'div' );
+                buttonContainer.style.cssText = 'display: flex; gap: 10px; justify-content: flex-end;';
+
+                const cancelBtn = document.createElement( 'button' );
+                cancelBtn.className = 'btn btn-secondary';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.onclick = () => {
+                    document.body.removeChild( overlay );
+                    resolve( null );
+                };
+
+                const mergeBtn = document.createElement( 'button' );
+                mergeBtn.className = 'btn btn-secondary';
+                mergeBtn.textContent = 'Add to Current';
+                mergeBtn.onclick = () => {
+                    document.body.removeChild( overlay );
+                    resolve( 'merge' );
+                };
+
+                const replaceBtn = document.createElement( 'button' );
+                replaceBtn.className = 'btn btn-primary';
+                replaceBtn.textContent = 'Clear All & Import';
+                replaceBtn.onclick = () => {
+                    document.body.removeChild( overlay );
+                    resolve( 'replace' );
+                };
+
+                buttonContainer.appendChild( cancelBtn );
+                buttonContainer.appendChild( mergeBtn );
+                buttonContainer.appendChild( replaceBtn );
+
+                dialog.appendChild( title );
+                dialog.appendChild( text );
+                dialog.appendChild( buttonContainer );
+                overlay.appendChild( dialog );
+                document.body.appendChild( overlay );
+            } );
+
+            return result;
         }
 
         async function parsePlugin( zip, fileName ) {
@@ -736,7 +914,7 @@
         }
 
         function clearAll() {
-            if ( !confirm( 'Are you sure you want to clear all plugins and reset all settings? This cannot be undone.' ) ) {
+            if ( !confirm( 'This will remove all added plugins and reset the form to defaults.\n\nTip: You can use a previously combined plugin ZIP to load them back into the app.' ) ) {
                 return;
             }
 
@@ -801,6 +979,31 @@
 
                 const mainPluginContent = generateMainPluginFile();
                 combinedZip.file( `${pluginSlug}/${pluginSlug}.php`, mainPluginContent );
+
+                const metadata = {
+                    type: 'my-telex-blocks-export',
+                    version: '1.0',
+                    exportDate: new Date().toISOString(),
+                    formData: {
+                        pluginName: document.getElementById( 'pluginName' ).value,
+                        pluginDescription: document.getElementById( 'pluginDescription' ).value,
+                        pluginAuthor: document.getElementById( 'pluginAuthor' ).value,
+                        pluginVersion: document.getElementById( 'pluginVersion' ).value,
+                        overrideDescription: document.getElementById( 'overrideDescription' ).checked
+                    },
+                    plugins: plugins.map( p => ( {
+                        name: p.name,
+                        description: p.description,
+                        version: p.version,
+                        author: p.author,
+                        fileName: p.fileName,
+                        mainFile: p.mainFile,
+                        requiresWP: p.requiresWP,
+                        requiresPHP: p.requiresPHP,
+                        header: p.header
+                    } ) )
+                };
+                combinedZip.file( `${pluginSlug}/my-telex-blocks.json`, JSON.stringify( metadata, null, 2 ) );
 
                 const blob = await combinedZip.generateAsync( { type: 'blob' } );
                 const url = URL.createObjectURL( blob );
